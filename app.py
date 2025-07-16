@@ -17,23 +17,27 @@ RENKLER = [
 ]
 
 def renk_haritasini_yukle_veya_olustur(kelimeler):
+    renk_haritasi = {}
+    
     if os.path.exists(RENK_DOSYASI):
-        with open(RENK_DOSYASI, "r", encoding="utf-8") as f:
-            renk_haritasi = json.load(f)
-    else:
-        renk_haritasi = {}
+        try:
+            with open(RENK_DOSYASI, "r", encoding="utf-8") as f:
+                renk_haritasi = json.load(f)
+        except json.JSONDecodeError:
+            st.warning("⚠️ 'renkler.json' bozuk olduğu için sıfırdan oluşturuluyor.")
+            renk_haritasi = {}
+            os.remove(RENK_DOSYASI)
 
     renk_index = 0
     for kelime in kelimeler:
         if kelime not in renk_haritasi:
-            renk_haritası = renk_haritası if 'renk_haritası' in locals() else renk_haritasi
-            renk_haritası[kelime] = RENKLER[renk_index % len(RENKLER)]
+            renk_haritasi[kelime] = RENKLER[renk_index % len(RENKLER)]
             renk_index += 1
 
     with open(RENK_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(renk_haritası, f, ensure_ascii=False, indent=2)
+        json.dump(renk_haritasi, f, ensure_ascii=False, indent=2)
 
-    return renk_haritası
+    return renk_haritasi
 
 # Çakışmasız yerleştirme
 def kelime_koy(ax, kelime, fontsize, renk, kutular, fig):
@@ -47,10 +51,9 @@ def kelime_koy(ax, kelime, fontsize, renk, kutular, fig):
         inv = ax.transAxes.inverted()
         bbox_axes = transforms.Bbox(inv.transform(bbox))
 
-        # Çakışma kontrolü
         if not any(bbox_axes.overlaps(k) for k in kutular):
             kutular.append(bbox_axes)
-            return x, y  # Başarıyla yerleştirildi
+            return x, y
         else:
             text.remove()
     return None, None  # Başarısız
@@ -85,14 +88,12 @@ if uploaded_file:
         ax.axis("off")
         kutular = []
 
-        # Kelimeleri yerleştir
         final_positions = []
         for kelime, freq, x, y in zip(kelimeler, frekanslar, x_koordinatlar, y_koordinatlar):
             boyut = normalize(freq)
             renk = renk_haritasi.get(kelime, "#000000")
 
             if pd.notnull(x) and pd.notnull(y):
-                # Elle girilmiş pozisyon varsa onu kullan
                 t = ax.text(x, y, kelime, fontsize=boyut, color=renk,
                             ha='center', va='center', transform=ax.transAxes)
                 renderer = fig.canvas.get_renderer()
@@ -102,7 +103,6 @@ if uploaded_file:
                 kutular.append(bbox_axes)
                 final_positions.append((kelime, x, y))
             else:
-                # Otomatik yerleştirme
                 x_auto, y_auto = kelime_koy(ax, kelime, boyut, renk, kutular, fig)
                 if x_auto is not None:
                     final_positions.append((kelime, x_auto, y_auto))
@@ -115,6 +115,4 @@ if uploaded_file:
         st.success("✅ Görsel başarıyla oluşturuldu ve 'output.png' olarak kaydedildi.")
 
         with open("output.png", "rb") as f:
-            st.download_button("📥 PNG Görselini İndir", f, file_name="wordcloud.png", mime="image/png")
-
-        st.info("ℹ️ Pozisyonu boş olan kelimeler, çakışmasız ve rastgele bir yere otomatik yerleştirildi.")
+            st.download_button("📥 PNG Görselini İndi_
