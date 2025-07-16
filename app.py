@@ -3,9 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import json
+import random
 
 st.set_page_config(layout="wide")
-st.title("📊 Sabit Konumlu Word Cloud Uygulaması")
+st.title("📊 Sabit + Dinamik Word Cloud Uygulaması")
 
 RENK_DOSYASI = "renkler.json"
 RENKLER = [
@@ -32,14 +33,22 @@ def renk_haritasini_yukle_veya_olustur(kelimeler):
 
     return renk_haritasi
 
-uploaded_file = st.file_uploader("Excel dosyanızı yükleyin (.xlsx)", type="xlsx")
+uploaded_file = st.file_uploader("📂 Excel dosyanızı yükleyin (.xlsx)", type="xlsx")
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
 
-    if not {"Kelime", "Frekans", "X Koordinat", "Y Koordinat"}.issubset(df.columns):
-        st.error("❌ Excel dosyası 'Kelime', 'Frekans', 'X Koordinat', 'Y Koordinat' sütunlarını içermelidir.")
+    required_columns = {"Kelime", "Frekans", "X Koordinat", "Y Koordinat"}
+    if not required_columns.issubset(df.columns):
+        st.error("❌ Excel dosyasında 'Kelime', 'Frekans', 'X Koordinat', 'Y Koordinat' sütunları olmalı.")
     else:
+        # Eksik konumları doldur
+        def random_position():
+            return round(random.uniform(0.05, 0.95), 3)  # %5–%95 arasında
+
+        df["X Koordinat"] = df["X Koordinat"].apply(lambda x: x if pd.notnull(x) else random_position())
+        df["Y Koordinat"] = df["Y Koordinat"].apply(lambda x: x if pd.notnull(x) else random_position())
+
         kelimeler = df["Kelime"].tolist()
         frekanslar = df["Frekans"].tolist()
         x_koordinatlar = df["X Koordinat"].tolist()
@@ -66,8 +75,12 @@ if uploaded_file:
             ax.text(x, y, kelime, fontsize=boyut, color=renk, ha='center', va='center', transform=ax.transAxes)
 
         st.pyplot(fig)
+
+        # PNG olarak kaydet ve indirilebilir hale getir
         plt.savefig("output.png", bbox_inches='tight', dpi=300)
-        st.success("✅ Görsel başarıyla oluşturuldu ve output.png olarak kaydedildi.")
+        st.success("✅ Görsel başarıyla oluşturuldu ve 'output.png' olarak kaydedildi.")
 
         with open("output.png", "rb") as f:
             st.download_button("📥 PNG Görselini İndir", f, file_name="wordcloud.png", mime="image/png")
+
+        st.info("ℹ️ Yeni kelimeler için pozisyon ve renk otomatik atanır. Renkler sabit kalır.")
