@@ -39,9 +39,8 @@ def renk_haritasini_yukle_veya_olustur(kelimeler):
 
     return renk_haritasi
 
-# Çakışmasız yerleştirme
 def kelime_koy(ax, kelime, fontsize, renk, kutular, fig):
-    for deneme in range(100):
+    for _ in range(100):
         x, y = random.uniform(0.05, 0.95), random.uniform(0.05, 0.95)
         text = ax.text(x, y, kelime, fontsize=fontsize, color=renk,
                        ha='center', va='center', transform=ax.transAxes)
@@ -56,7 +55,7 @@ def kelime_koy(ax, kelime, fontsize, renk, kutular, fig):
             return x, y
         else:
             text.remove()
-    return None, None  # Başarısız
+    return None, None
 
 uploaded_file = st.file_uploader("📂 Excel dosyanızı yükleyin (.xlsx)", type="xlsx")
 
@@ -88,7 +87,6 @@ if uploaded_file:
         ax.axis("off")
         kutular = []
 
-        final_positions = []
         for kelime, freq, x, y in zip(kelimeler, frekanslar, x_koordinatlar, y_koordinatlar):
             boyut = normalize(freq)
             renk = renk_haritasi.get(kelime, "#000000")
@@ -101,12 +99,9 @@ if uploaded_file:
                 inv = ax.transAxes.inverted()
                 bbox_axes = transforms.Bbox(inv.transform(bbox))
                 kutular.append(bbox_axes)
-                final_positions.append((kelime, x, y))
             else:
                 x_auto, y_auto = kelime_koy(ax, kelime, boyut, renk, kutular, fig)
-                if x_auto is not None:
-                    final_positions.append((kelime, x_auto, y_auto))
-                else:
+                if x_auto is None:
                     st.warning(f"⚠️ '{kelime}' kelimesi yerleştirilemedi, fazla doluluk olabilir.")
 
         st.pyplot(fig)
@@ -115,4 +110,6 @@ if uploaded_file:
         st.success("✅ Görsel başarıyla oluşturuldu ve 'output.png' olarak kaydedildi.")
 
         with open("output.png", "rb") as f:
-            st.download_button("📥 PNG Görselini İndi_
+            st.download_button("📥 PNG Görselini İndir", f, file_name="wordcloud.png", mime="image/png")
+
+        st.info("ℹ️ Pozisyonu boş olan kelimeler çakışmasız şekilde otomatik yerleştirildi. Renkler sabittir.")
